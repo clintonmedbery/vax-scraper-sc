@@ -56,7 +56,7 @@ let firebaseConfig = {
                 let streetAddress = locArray[1]
                 let cityStateZip = locArray[2]
                         
-                data.push({name, streetAddress, cityStateZip, available});
+                data.push({name, streetAddress, cityStateZip});
                 
             }
             return data
@@ -70,6 +70,7 @@ let firebaseConfig = {
             let info = _.find(cityData, (item) => item.zip == zip)
             availableLocMap[zip] = {...loc, latitude: info && info.latitude, longitude: info && info.longitude}
         })
+
         let availableZips = Object.keys(availableLocMap)
 
         const usersRef = firebase.firestore().collection('users')
@@ -85,52 +86,67 @@ let firebaseConfig = {
             ...doc.data(),
         }))
 
-        for(var user of userData){
-
+        userData.forEach((user) => {
+    
             let info = _.find(cityData, (item) => item.zip == user.zipCode)
+
             if(!info){
                 //Need to handle this
                 return
             }
-            let nearby = zipcodes.near(user.zipCode.toString(), 35000, {datafile: 'data/sc-zips.csv', zipcode: "Zip", long: "Longitude", lat: "Latitude"}).then((nearby) => {
-                
-                let intersection = _.intersection(availableZips, nearby)
-
-                if(intersection.length > 0){
-                    console.log("FOUND A MATCH")
-                    let now = dayjs()
-                    let lastDate = dayjs(user.lastContacted)
-                    let diff = now.diff(lastDate, "minute")
+       
+            try {
+                zipcodes.near(user.zipCode, 65000, {datafile: 'data/sc-zips.csv', zipcode: "Zip", long: "Longitude", lat: "Latitude"}).then((nearby) => {
+              
+                    let intersection = _.intersection(availableZips, nearby)
     
-                    //Not trying to blow up phones.
-                    if(Math.abs(diff) < 30){
-                        console.log("Texted user not long ago.")
-                        return
-                    } else {
-                        twilio.messages
-                            .create({
-                                body: `Available Appointment at ${intersection.join(', ')}. Go to https://cvas.dhec.sc.gov/Health/CovidVaccineScheduling`,
-                                from: process.env.TWILIO_PHONE_NUMBER,
-                                to: user.phoneNumber
-                            }).then(message => {
-                                console.log(message.sid)
-                                firebase.firestore().collection("users").doc(user.id).update({...user, lastContacted: dayjs().valueOf()});
-
-                            }).catch((e) => {
-                                console.error("Twilio Error:", e)
-                            })
-                    
+                    if(intersection.length > 0){
+                        console.log("FOUND A MATCH")
+                        let now = dayjs()
+                        let lastDate = dayjs(user.lastContacted)
+                        let diff = now.diff(lastDate, "minute")
+                        console.log(user);
+                        //Not trying to blow up phones.
+                        if(user.lastContacted && Math.abs(diff) < 20){
+                            console.log("Texted user not long ago.")
+                            return
+                        } 
+                        try {
+                            let name = availableLocMap[intersection[0]].name
+                            if(process.env.ENVIRONMENT === 'dev'){
+                                console.log(`DEV MATCH FOUND for ${user.phoneNumber} at ${name}`)
+                            } else {
+                                console.log(`MATCH FOUND for ${user.phoneNumber} at ${name}`)
+                                twilio.messages
+                                    .create({
+                                        body: `Available Appointment at ${intersection.join(', ')}. Go to https://cvas.dhec.sc.gov/Health/CovidVaccineScheduling and choose ${name}`,
+                                        from: process.env.TWILIO_PHONE_NUMBER,
+                                        to: user.phoneNumber
+                                    }).then(message => {
+                                        console.log("MESSAGE SENT:", message.sid)
+                                        firebase.firestore().collection("users").doc(user.id).update({...user, lastContacted: dayjs().valueOf()});
+    
+                                    }).catch((e) => {
+                                        console.error("Twilio Error:", e)
+                                    })
+                            }
+                            
+                        } catch (e){
+                            console.error(e)
+                        }
+                        
+                        
                     }
-                    
-                } else {
-                    console.log("NO MATCHES")
-                }
-            })
-        }
+                }).catch((e) => console.log("Nearby Error", e))
+            } catch (e) {
+                console.log(e)
+            }
+            
+        })
             
     
         await grab()
-    }, 60000)
+    }, 20000)
   }
   await grab()
   

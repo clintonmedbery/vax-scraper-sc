@@ -16,6 +16,7 @@ Sample:
     MEASUREMENT_ID = G-asdas3123
     TWILIO_AUTH_TOKEN = q312ansd128asjdasd
     TWILIO_PHONE_NUMBER = +15555555555
+    ENVIRONMENT = prod
 ```
 
 ```yarn install```
