@@ -43,7 +43,7 @@ let firebaseConfig = {
         let availableLocations = await page.evaluate(() => {
 
             let data = []
-            let elements = document.getElementsByClassName('btn-outline-secondary')
+            let elements = document.getElementsByClassName('btn-outline-primary')
             for (var element of elements) {
                 let inner = element.innerHTML
                 inner = inner.replace('</b>','')
@@ -52,15 +52,11 @@ let firebaseConfig = {
 
                 let locArray = inner.split("<br>")
                 
-                if(locArray[3] !== 'Unavailable'){
-                    let name = locArray[0]
-                    let streetAddress = locArray[1]
-                    let cityStateZip = locArray[2]
-                
-                    let available = locArray[3] !== 'Unavailable'
-                   
-                    data.push({name, streetAddress, cityStateZip, available});
-                }
+                let name = locArray[0]
+                let streetAddress = locArray[1]
+                let cityStateZip = locArray[2]
+                        
+                data.push({name, streetAddress, cityStateZip, available});
                 
             }
             return data
@@ -88,6 +84,7 @@ let firebaseConfig = {
             id: doc.id,
             ...doc.data(),
         }))
+
         for(var user of userData){
 
             let info = _.find(cityData, (item) => item.zip == user.zipCode)
@@ -133,7 +130,7 @@ let firebaseConfig = {
             
     
         await grab()
-    }, 10000)
+    }, 1000)
   }
   await grab()
   
