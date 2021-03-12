@@ -36,7 +36,7 @@ let firebaseConfig = {
   const page = await browser.newPage()
   const grab = async () => {
     setTimeout(async () => { 
-
+        console.log("Starting scrape at:", dayjs().format())
         await page.goto('https://cvas.dhec.sc.gov/health/CovidVaccineScheduling/SelectLocation', { waitUntil: 'networkidle2' });
         let cityData = zipData.map(x => x.fields)
 
