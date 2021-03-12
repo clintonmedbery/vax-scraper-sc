@@ -130,7 +130,7 @@ let firebaseConfig = {
             
     
         await grab()
-    }, 1000)
+    }, 60000)
   }
   await grab()
   
